@@ -25,8 +25,11 @@ app.use(express.json());
 app.use(morgan("dev"));
 app.use(cookieParser());
 
-app.get("/", (req, res) => {
-  res.send("Hello World!");
+app.use((err, req, res, next) => {
+  if (!err.message) err.message = "Internal Server Error";
+  const { statusCode = 500 } = err;
+  console.log(err.message);
+  res.status(statusCode).json(err.message);
 });
 
 app.listen(8000, () => {
