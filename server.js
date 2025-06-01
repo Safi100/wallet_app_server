@@ -25,6 +25,15 @@ app.use(express.json());
 app.use(morgan("dev"));
 app.use(cookieParser());
 
+// Routes
+const authRoutes = require("./routes/auth.route");
+const categoryRoutes = require("./routes/category.route");
+const transactionRoutes = require("./routes/transaction.route");
+
+app.use("/api/auth", authRoutes);
+app.use("/api/category", categoryRoutes);
+app.use("/api/transaction", transactionRoutes);
+
 app.use((err, req, res, next) => {
   if (!err.message) err.message = "Internal Server Error";
   const { statusCode = 500 } = err;
