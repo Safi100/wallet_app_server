@@ -16,9 +16,9 @@ module.exports.getTransactions = async (req, res, next) => {
 
 module.exports.createTransaction = async (req, res, next) => {
   try {
-    const { title, amount, category } = req.body;
+    const { title, amount, category, type } = req.body;
     const user = await User.findById(req.user.id);
-    if (!category || !title || !amount) {
+    if (!category || !title || !amount || !type) {
       throw new HandleError("Please fill all the fields", 400);
     }
     if (!user) {
@@ -30,11 +30,19 @@ module.exports.createTransaction = async (req, res, next) => {
     if (!categoryExists) {
       throw new HandleError("Category not found", 404);
     }
+    if (type != "expense" && type != "income") {
+      throw new HandleError("Type must be income or expense", 400);
+    }
+    if (amount < 1) {
+      throw new HandleError("Amount must be greater than 0", 400);
+    }
+
     const transaction = new Transaction({
       user_id: req.user.id,
       title,
       amount: Number(amount),
       category,
+      type,
     });
     await transaction.save();
     res.json(transaction);
