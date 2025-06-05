@@ -4,7 +4,7 @@ const morgan = require("morgan");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
-const cron = require("node-cron");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
 
@@ -21,9 +21,20 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: "⚠️ You have exceeded the 100 requests in 15 minutes limit!",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use(express.json());
 app.use(morgan("dev"));
 app.use(cookieParser());
+app.use(apiLimiter);
 
 // Routes
 const authRoutes = require("./routes/auth.route");
