@@ -16,7 +16,6 @@ const transactionSchema = new Schema(
     amount: {
       type: Number,
       required: true,
-      min: 1,
     },
     category: {
       type: Schema.Types.ObjectId,
@@ -25,7 +24,7 @@ const transactionSchema = new Schema(
     },
     type: {
       type: String,
-      enum: ["income", "expense"],
+      enum: ["income", "expenses"],
       required: true,
     },
   },
