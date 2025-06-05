@@ -4,6 +4,7 @@ const {
   getTransactions,
   createTransaction,
   deleteTransaction,
+  getSummary,
 } = require("../controllers/transaction.controller");
 
 const { isLoggedIn } = require("../middleware");
@@ -13,6 +14,7 @@ router
   .get(isLoggedIn, getTransactions)
   .post(isLoggedIn, createTransaction);
 
-router.route("/:id").delete(isLoggedIn, deleteTransaction);
+router.delete("/:id", isLoggedIn, deleteTransaction);
+router.get("/summary", isLoggedIn, getSummary);
 
 module.exports = router;

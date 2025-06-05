@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Transaction = require("../models/transaction.model");
 const User = require("../models/user.model");
 const Category = require("../models/category.model");
@@ -30,8 +31,8 @@ module.exports.createTransaction = async (req, res, next) => {
     if (!categoryExists) {
       throw new HandleError("Category not found", 404);
     }
-    if (type != "expense" && type != "income") {
-      throw new HandleError("Type must be income or expense", 400);
+    if (type != "expenses" && type != "income") {
+      throw new HandleError("Type must be income or expenses", 400);
     }
     if (amount < 1) {
       throw new HandleError("Amount must be greater than 0", 400);
@@ -40,7 +41,7 @@ module.exports.createTransaction = async (req, res, next) => {
     const transaction = new Transaction({
       user_id: req.user.id,
       title,
-      amount: Number(amount),
+      amount: type === "expenses" ? -Math.abs(amount) : Math.abs(amount),
       category,
       type,
     });
@@ -69,6 +70,45 @@ module.exports.deleteTransaction = async (req, res, next) => {
     res
       .status(200)
       .json({ message: "Transaction deleted successfully", transaction });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports.getSummary = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const [result] = await Transaction.aggregate([
+      {
+        $match: {
+          user_id: new mongoose.Types.ObjectId(userId),
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          income: {
+            $sum: {
+              $cond: [{ $eq: ["$type", "income"] }, "$amount", 0],
+            },
+          },
+          expenses: {
+            $sum: {
+              $cond: [{ $eq: ["$type", "expenses"] }, "$amount", 0],
+            },
+          },
+          balance: {
+            $sum: "$amount",
+          },
+        },
+      },
+    ]);
+
+    const income = result?.income || 0;
+    const expenses = result?.expenses || 0;
+    const balance = result?.balance || 0;
+
+    res.status(200).json({ balance, income, expenses });
   } catch (err) {
     next(err);
   }
