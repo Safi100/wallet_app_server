@@ -52,6 +52,20 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json(err.message);
 });
 
+const axios = require("axios");
+const cron = require("node-cron");
+
+cron.schedule("*/5 * * * *", async () => {
+  await axios
+    .get("https://wallet-app-server-mydy.onrender.com/")
+    .then((response) => {
+      console.log("Data fetched from external API");
+    })
+    .catch((error) => {
+      console.error("Error fetching data from external API");
+    });
+});
+
 app.listen(8000, () => {
   console.log("Server started on port 8000");
 });
