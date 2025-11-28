@@ -5,6 +5,7 @@ const {
   createTransaction,
   deleteTransaction,
   getSummary,
+  getTransactionsByCategory,
 } = require("../controllers/transaction.controller");
 
 const { isLoggedIn } = require("../middleware");
@@ -16,5 +17,6 @@ router
 
 router.delete("/:id", isLoggedIn, deleteTransaction);
 router.get("/summary", isLoggedIn, getSummary);
+router.get("/category/:id", isLoggedIn, getTransactionsByCategory);
 
 module.exports = router;

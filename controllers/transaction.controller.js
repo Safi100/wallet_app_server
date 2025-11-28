@@ -7,9 +7,21 @@ const HandleError = require("../utils/HandleError");
 module.exports.getTransactions = async (req, res, next) => {
   try {
     const transactions = await Transaction.find({ user_id: req.user.id })
-      .populate("category")
+      .populate({ path: "category", select: ["name", "icon"] })
       .sort({ createdAt: -1 });
-    res.status(200).json(transactions);
+
+    const grouped = transactions.reduce((acc, tx) => {
+      const date = tx.createdAt.toISOString().split("T")[0];
+      let group = acc.find((g) => g.date === date);
+      if (!group) {
+        group = { date, transactions: [] };
+        acc.push(group);
+      }
+      group.transactions.push(tx);
+      return acc;
+    }, []);
+
+    res.status(200).json(grouped);
   } catch (err) {
     next(err);
   }
@@ -109,6 +121,51 @@ module.exports.getSummary = async (req, res, next) => {
     const balance = result?.balance || 0;
 
     res.status(200).json({ balance, income, expenses });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports.getTransactionsByCategory = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const category = await Category.findById(id);
+    if (!category) {
+      throw new HandleError("Category not found", 404);
+    }
+
+    const transactions = await Transaction.find({
+      user_id: userId,
+      category: category._id,
+    })
+      .populate({ path: "category", select: ["name", "icon"] })
+      .sort({ createdAt: -1 });
+
+    // Group transactions by date
+    const grouped = transactions.reduce((acc, tx) => {
+      const date = tx.createdAt.toISOString().split("T")[0];
+      let group = acc.find((g) => g.date === date);
+      if (!group) {
+        group = { date, transactions: [] };
+        acc.push(group);
+      }
+      group.transactions.push(tx);
+      return acc;
+    }, []);
+
+    // Calculate summary
+    const summary = transactions.reduce(
+      (acc, tx) => {
+        acc.total += tx.amount;
+        acc.count += 1;
+        return acc;
+      },
+      { total: 0, count: 0 }
+    );
+
+    res.status(200).json({ transactions: grouped, summary });
   } catch (err) {
     next(err);
   }
