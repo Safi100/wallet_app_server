@@ -22,20 +22,10 @@ app.use(
   })
 );
 
-// Rate limiting
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: "⚠️ You have exceeded the 100 requests in 15 minutes limit!",
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 app.use(express.json());
 app.use(morgan("dev"));
 app.use(cookieParser());
-app.set('trust proxy', 1);
-app.use(apiLimiter);
+app.set("trust proxy", 1);
 
 // Routes
 const authRoutes = require("./routes/auth.route");
