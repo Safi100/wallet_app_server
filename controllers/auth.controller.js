@@ -19,44 +19,15 @@ async function generateRandomVerifyCodeWithEmail(user, req) {
   });
   await newVerifyCode.save();
 
-  // Get public internet ip from local ip
-  const rawIP = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-  const clientIP = rawIP?.replace("::ffff:", "") || "Unknown IP";
-  let publicIP = clientIP;
-  try {
-    const res = await axios.get("https://api.ipify.org?format=json", {
-      timeout: 3000,
-    });
-    publicIP = res.data.ip || clientIP;
-  } catch (err) {
-    console.error("⚠️ Failed to fetch public IP:", err.message);
-  }
-
-  // Get ip location - using free API without rate limits
-  let location = "Unknown location";
-  try {
-    // Using ip-api.com (free, 45 requests/minute)
-    const res = await axios.get(`http://ip-api.com/json/${publicIP}`, {
-      timeout: 3000,
-    });
-    if (res.data.status === "success") {
-      const { city, country } = res.data;
-      location = `${city || "Unknown City"}, ${country || "Unknown Country"}`;
-    }
-  } catch (err) {
-    console.error("⚠️ Failed to fetch location:", err.message);
-    // Continue with unknown location instead of failing
-  }
-
-  // send email - continue even if IP/location fetch failed
+  // send email
   try {
     await sendEmail(
       user.email,
       "Verify your email",
       code,
-      publicIP,
-      location,
-      (time = new Date()
+      "N/A",
+      "N/A",
+      new Date()
         .toLocaleString("en-US", {
           year: "numeric",
           month: "short",
@@ -65,7 +36,7 @@ async function generateRandomVerifyCodeWithEmail(user, req) {
           minute: "2-digit",
           hour12: true,
         })
-        .replace(",", ""))
+        .replace(",", "")
     );
     console.log("✅ Verification email sent successfully to:", user.email);
   } catch (emailError) {
