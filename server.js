@@ -53,7 +53,7 @@ cron.schedule("*/5 * * * *", async () => {
       console.log("Data fetched from external API");
     })
     .catch((error) => {
-      console.error(error);
+      console.error("Error fetching data from external API - but called");
     });
 });
 
