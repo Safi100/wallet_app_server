@@ -21,10 +21,12 @@ async function generateRandomVerifyCodeWithEmail(user, req) {
 
   // Get public internet ip from local ip
   const rawIP = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-  const clientIP = rawIP.replace("::ffff:", "");
+  const clientIP = rawIP?.replace("::ffff:", "") || "Unknown IP";
   let publicIP = clientIP;
   try {
-    const res = await axios.get("https://api.ipify.org?format=json");
+    const res = await axios.get("https://api.ipify.org?format=json", {
+      timeout: 3000,
+    });
     publicIP = res.data.ip || clientIP;
   } catch (err) {
     console.error("⚠️ Failed to fetch public IP:", err.message);
@@ -33,31 +35,40 @@ async function generateRandomVerifyCodeWithEmail(user, req) {
   // Get ip location
   let location = "Unknown location";
   try {
-    const res = await axios.get(`https://ipinfo.io/${publicIP}/json`);
+    const res = await axios.get(`https://ipinfo.io/${publicIP}/json`, {
+      timeout: 3000,
+    });
     const { city, country } = res.data;
     location = `${city || "Unknown City"}, ${country || "Unknown Country"}`;
   } catch (err) {
     console.error("⚠️ Failed to fetch location:", err.message);
+    // Continue with unknown location instead of failing
   }
 
-  // send email
-  await sendEmail(
-    user.email,
-    "Verify your email",
-    code,
-    publicIP,
-    location,
-    (time = new Date()
-      .toLocaleString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
-      .replace(",", ""))
-  );
+  // send email - continue even if IP/location fetch failed
+  try {
+    await sendEmail(
+      user.email,
+      "Verify your email",
+      code,
+      publicIP,
+      location,
+      (time = new Date()
+        .toLocaleString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
+        .replace(",", ""))
+    );
+    console.log("✅ Verification email sent successfully to:", user.email);
+  } catch (emailError) {
+    console.error("❌ Failed to send verification email:", emailError.message);
+    // Don't throw error - let user continue even if email fails
+  }
 }
 
 module.exports.login = async (req, res, next) => {
