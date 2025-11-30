@@ -48,12 +48,12 @@ const cron = require("node-cron");
 
 cron.schedule("*/5 * * * *", async () => {
   await axios
-    .get("https://wallet-app-server-mydy.onrender.com/")
+    .get("https://wallet-app-server-mydy.onrender.com/api/transaction/summary")
     .then((response) => {
       console.log("Data fetched from external API");
     })
     .catch((error) => {
-      console.error("Error fetching data from external API");
+      console.error(error);
     });
 });
 
