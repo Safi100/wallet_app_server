@@ -32,14 +32,17 @@ async function generateRandomVerifyCodeWithEmail(user, req) {
     console.error("⚠️ Failed to fetch public IP:", err.message);
   }
 
-  // Get ip location
+  // Get ip location - using free API without rate limits
   let location = "Unknown location";
   try {
-    const res = await axios.get(`https://ipinfo.io/${publicIP}/json`, {
+    // Using ip-api.com (free, 45 requests/minute)
+    const res = await axios.get(`http://ip-api.com/json/${publicIP}`, {
       timeout: 3000,
     });
-    const { city, country } = res.data;
-    location = `${city || "Unknown City"}, ${country || "Unknown Country"}`;
+    if (res.data.status === "success") {
+      const { city, country } = res.data;
+      location = `${city || "Unknown City"}, ${country || "Unknown Country"}`;
+    }
   } catch (err) {
     console.error("⚠️ Failed to fetch location:", err.message);
     // Continue with unknown location instead of failing
