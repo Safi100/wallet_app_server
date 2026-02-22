@@ -75,7 +75,7 @@ module.exports.deleteTransaction = async (req, res, next) => {
     if (transaction.user_id.toString() !== req.user.id) {
       throw new HandleError(
         "You are not authorized to delete this transaction",
-        401
+        401,
       );
     }
     await transaction.deleteOne();
@@ -162,7 +162,7 @@ module.exports.getTransactionsByCategory = async (req, res, next) => {
         acc.count += 1;
         return acc;
       },
-      { total: 0, count: 0 }
+      { total: 0, count: 0 },
     );
 
     res.status(200).json({ transactions: grouped, summary });
