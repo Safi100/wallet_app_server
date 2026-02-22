@@ -1,49 +1,8 @@
 const User = require("../models/user.model");
-const VerifyCode = require("../models/verifyCode.model");
 const jwt = require("jsonwebtoken");
 const HandleError = require("../utils/HandleError");
 const bcrypt = require("bcrypt");
-const sendEmail = require("../utils/SendEmail");
 const axios = require("axios");
-
-async function generateRandomVerifyCodeWithEmail(user, req) {
-  const existingCode = await VerifyCode.findOne({ userId: user._id });
-  if (existingCode) return;
-
-  const code = Math.floor(100000 + Math.random() * 900000);
-  const hashedCode = await bcrypt.hash(code.toString(), 10);
-
-  const newVerifyCode = new VerifyCode({
-    userId: user._id,
-    code: hashedCode,
-  });
-  await newVerifyCode.save();
-
-  // send email
-  try {
-    await sendEmail(
-      user.email,
-      "Verify your email",
-      code,
-      "N/A",
-      "N/A",
-      new Date()
-        .toLocaleString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        })
-        .replace(",", "")
-    );
-    console.log("✅ Verification email sent successfully to:", user.email);
-  } catch (emailError) {
-    console.error("❌ Failed to send verification email:", emailError.message);
-    // Don't throw error - let user continue even if email fails
-  }
-}
 
 module.exports.login = async (req, res, next) => {
   try {
@@ -66,9 +25,6 @@ module.exports.login = async (req, res, next) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       throw new HandleError("Invalid credentials", 400);
-    }
-    if (!user.isVerified) {
-      await generateRandomVerifyCodeWithEmail(user, req);
     }
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
     res.cookie("access_token", token, { httpOnly: true });
@@ -111,48 +67,7 @@ module.exports.register = async (req, res, next) => {
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
     res.cookie("access_token", token, { httpOnly: true });
 
-    await generateRandomVerifyCodeWithEmail(user, req);
-
     res.status(201).json({ user, token });
-  } catch (err) {
-    next(err);
-  }
-};
-
-module.exports.verifyEmail = async (req, res, next) => {
-  try {
-    const { code } = req.body;
-
-    if (!code) {
-      throw new HandleError("Please enter the code", 400);
-    }
-
-    if (code.length !== 6) {
-      throw new HandleError("Code must be 6 digits", 400);
-    }
-    console.log(req.user);
-
-    const verifyCode = await VerifyCode.findOne({ userId: req.user.id });
-
-    if (!verifyCode) {
-      throw new HandleError("No verification code found for this user", 400);
-    }
-
-    const isMatch = await bcrypt.compare(code, verifyCode.code);
-    if (!isMatch) {
-      throw new HandleError("Invalid code", 400);
-    }
-
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      throw new HandleError("User not found", 404);
-    }
-
-    user.isVerified = true;
-    await user.save();
-    await VerifyCode.deleteOne({ _id: verifyCode._id });
-
-    res.status(200).json({ message: "Email verified" });
   } catch (err) {
     next(err);
   }
